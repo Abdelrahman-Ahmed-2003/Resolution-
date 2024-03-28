@@ -1,25 +1,6 @@
 from nltk.sem import logic
 from nltk.sem.logic import *
-
-# Define test cases
-test_cases = [
-    # Implication Test Case with Predicates
-    "some x all y (P(x) | P(y) -> (P(x) & P(y)))",
-
-    # Biconditional Test Case with Predicates
-    "all x ((P(x) <-> A) & (P(y) <-> B))",
-
-    # Mixed Test Case with Predicates
-    "some x all y (((P(x) | -P(y)) -> (P(x) & P(y))) & ((A | B) <-> (C & D)))",
-
-    # Multiple Implications Test Case with Predicates
-    "some x all y (((P(x) | P(y)) -> (P(x) & P(y))) & ((A | B) -> (C | D)))",
-
-    # Implication with Negation Test Case with Predicates
-    "some x all y ((-P(x) -> (P(y) | A)) & ((-B | P(z)) -> P(w)))"
-]
-
-test_cases = [logic.Expression.fromstring(i) for i in test_cases]
+from nltk.inference import ResolutionProverCommand
 
 
 def eliminate_implication(expression):
@@ -313,70 +294,157 @@ def convert_to_clause(expressions):
     return clauses
 
 
-def resolution(expressions):
+def resolution(expressions, p=True):
     # (p => q) = ~p | q
     expressions = [eliminate_implication(expression) for expression in expressions]
-    print("After eliminating implication:")
-    for i in expressions:
-        print('', i)
-    print()
+    if p:
+        print("After eliminating implication:")
+        for i in expressions:
+            print('', i)
+        print()
 
     # ~(p & q) = ~p | ~q, ~(p | q) = ~p & ~q
     expressions = [move_negation_inwards(expression) for expression in expressions]
-    print("After moving negation inwards:")
-    for i in expressions:
-        print('', i)
-    print()
+    if p:
+        print("After moving negation inwards:")
+        for i in expressions:
+            print('', i)
+        print()
 
     # Ax P(x) & Ax Q(x) = Ax P(x) & Ay Q(y)
     expressions = [standardize_variables(expression) for expression in expressions]
-    print("After standardizing variables:")
-    for i in expressions:
-        print('', i)
-    print()
+    if p:
+        print("After standardizing variables:")
+        for i in expressions:
+            print('', i)
+        print()
 
     # Ax (P(x) & Ey Q(y)) = Ax Ey (P(x) & Q(y))
     expressions = [prenex_form(expression) for expression in expressions]
-    print("After prenex form:")
-    for i in expressions:
-        print('', i)
-    print()
+    if p:
+        print("After prenex form:")
+        for i in expressions:
+            print('', i)
+        print()
 
     # Ex P(x) = P(sk(x))
     expressions = [skolemization(expression) for expression in expressions]
-    print("After skolemization:")
-    for i in expressions:
-        print('', i)
-    print()
+    if p:
+        print("After skolemization:")
+        for i in expressions:
+            print('', i)
+        print()
 
     # Ax P(x) and Ax Q(x) = Ax P(x) and Ay Q(y)
     expressions = rename_variables(expressions)
-    print("After renaming variables:")
-    for i in expressions:
-        print('', i)
-    print()
+    if p:
+        print("After renaming variables:")
+        for i in expressions:
+            print('', i)
+        print()
 
     # Ax P(x) = P(x)
     expressions = [eliminate_universal_quantifiers(expression) for expression in expressions]
-    print("After eliminating universal quantifiers:")
-    for i in expressions:
-        print('', i)
-    print()
+    if p:
+        print("After eliminating universal quantifiers:")
+        for i in expressions:
+            print('', i)
+        print()
 
     # (p & q) | r = (p | r) & (q | r)
     expressions = [conjunctive_normal_form(expression) for expression in expressions]
-    print("After conjunctive normal form:")
-    for i in expressions:
-        print('', i)
-    print()
+    if p:
+        print("After conjunctive normal form:")
+        for i in expressions:
+            print('', i)
+        print()
 
     # (p | q) = [[p, q]]
     clauses = convert_to_clause(expressions)
     # Turn clauses into a string
     clauses = [[str(i) for i in clause] for clause in clauses]
-    print("After converting to clause:")
-    for i in clauses:
-        print('', i)
+    if p:
+        print("After converting to clause:")
+        for i in clauses:
+            print('', i)
+        print()
 
+    return expressions
+
+
+# Define test cases
+test_cases = [
+    # Implication Test Case with Predicates
+    "some x all y (P(x) | P(y) -> (P(x) & P(y)))",
+    'some x P(x)',
+    # Biconditional Test Case with Predicates
+    "all x ((P(x) <-> A) & (P(y) <-> B))",
+
+    # Mixed Test Case with Predicates
+    "some x all y (((P(x) | -P(y)) -> (P(x) & P(y))) & ((A | B) <-> (C & D)))",
+
+    # Multiple Implications Test Case with Predicates
+    "some x all y (((P(x) | P(y)) -> (P(x) & P(y))) & ((A | B) -> (C | D)))",
+
+    # Implication with Negation Test Case with Predicates
+    "some x all y ((-P(x) -> (P(y) | A)) & ((-B | P(z)) -> P(w)))"
+]
+
+test_cases = [logic.Expression.fromstring(i) for i in test_cases]
 
 resolution([test_cases[0]])
+
+print('========================================================================================================')
+
+prove_test = ['all x.all y.(CScourse(x) & Test(y, x) -> some z.Fail(z, y))',
+              'all y.((some x.Test(y, x)) & Easy(y) -> all z.Pass(z, y))',
+              '-some x.some y.(Pass(x, y) & Fail(x, y))',
+              'Test(Exam1, Class1)',
+              'Easy (Exam1)']
+
+goal = logic.Expression.fromstring('-CScourse(Class1)')
+
+prove_test = [logic.Expression.fromstring(i) for i in prove_test]
+
+prove_test = resolution(prove_test, False)
+
+prover = ResolutionProverCommand(goal, prove_test)
+print('Prove:', prover.prove())
+# print(prover.proof())
+print('========================================================================================================')
+
+prove_test = ['all x.(Read(x) -> -Stupid(x))',
+              'Read(John) & Wealthy(John)',
+              'all x.(Poor(x) -> -Wealthy(x))',
+              'all x.(Stupid(x) | Smart(x))',
+              'all x.(-Poor(x) & Smart(x) -> Happy(x))',
+              'all x.(-Exciting(x) -> -Happy(x))']
+
+goal = logic.Expression.fromstring('some x.(Exciting(x))')
+
+prove_test = [logic.Expression.fromstring(i) for i in prove_test]
+
+prove_test = resolution(prove_test, False)
+
+prover = ResolutionProverCommand(goal, prove_test)
+print('Prove:', prover.prove())
+# print(prover.proof())
+print('========================================================================================================')
+
+prove_test = ['some x.(Dog(x) & Owns(Jack, x))',
+              'all x.(some y.(Dog(y) & Owns(x, y)) -> AnimalLover(x))',
+              'all x.(AnimalLover(x) -> (all y.(Animal(y) -> -Kills(x, y))))',
+              'Kills(Jack, Tuna) | Kills(Curiosity, Tuna)',
+              'Cat(Tuna)',
+              'all x.(Cat(x) -> Animal(x))']
+
+goal = logic.Expression.fromstring('Kills(Curiosity, Tuna)')
+
+prove_test = [logic.Expression.fromstring(i) for i in prove_test]
+
+prove_test = resolution(prove_test, False)
+
+prover = ResolutionProverCommand(goal, prove_test)
+print('Prove:', prover.prove())
+# print(prover.proof())
+print('========================================================================================================')
